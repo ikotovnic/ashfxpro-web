@@ -100,7 +100,10 @@ $nav_links = [
             <?php endforeach; ?>
           </nav>
         <?php else : ?>
-          <span class="site-nav__lang-btn">En</span>
+          <nav class="lang-switcher" role="navigation" aria-label="<?php esc_attr_e( 'Language switcher', 'ashfxpro' ); ?>">
+            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="site-nav__lang-btn" hreflang="en">En</a>
+            <a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="site-nav__lang-btn" hreflang="ru">Ru</a>
+          </nav>
         <?php endif; ?>
 
         <button

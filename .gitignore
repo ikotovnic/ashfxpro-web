@@ -1,10 +1,9 @@
 # Claude Code internal files
 .claude/
 
-# Figma mockup screenshots (root)
-*.png
-*.jpg
-!wp-content/
+# Figma mockup screenshots (root only — leading slash = root-only match)
+/*.png
+/*.jpg
 
 # WordPress system files
 wp-content/index.php

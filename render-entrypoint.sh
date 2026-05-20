@@ -26,7 +26,13 @@ if [ ! -f "$WP/wp-config.php" ]; then
         --dbuser=wp \
         --dbpass=wp \
         --dbhost=localhost \
-        --skip-check
+        --skip-check \
+        --extra-php <<'PHP'
+/* Trust Render's reverse-proxy SSL termination */
+if ( isset( $_SERVER['HTTP_X_FORWARDED_PROTO'] ) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
+    $_SERVER['HTTPS'] = 'on';
+}
+PHP
 fi
 
 # ── 4. Install WordPress (first boot only) ────────────────────────────────────
@@ -56,6 +62,9 @@ if ! wp core is-installed --allow-root --path="$WP" 2>/dev/null; then
 
     wp option update show_on_front  page        --allow-root --path="$WP"
     wp option update page_on_front  "$FRONT_ID" --allow-root --path="$WP"
+
+    # wp core install runs as root → fix SQLite DB ownership so www-data/Apache can write
+    chown -R www-data:www-data "$WP/wp-content/database"
 
     echo "WordPress installed at $SITE_URL"
 fi

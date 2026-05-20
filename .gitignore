@@ -1,0 +1,33 @@
+# Claude Code internal files
+.claude/
+
+# Figma mockup screenshots (root)
+*.png
+*.jpg
+!wp-content/
+
+# WordPress system files
+wp-content/index.php
+wp-content/pll-frontpage.php
+wp-content/upgrade/
+wp-content/uploads/
+
+# WordPress plugins (installed separately)
+wp-content/plugins/
+
+# Default WordPress themes (keep only our custom theme)
+wp-content/themes/index.php
+wp-content/themes/twentytwentytwo/
+wp-content/themes/twentytwentythree/
+wp-content/themes/twentytwentyfour/
+
+# Very large original JPGs (WebP versions are tracked)
+wp-content/themes/ashfxpro/assets/images/hero-bg1.jpg
+wp-content/themes/ashfxpro/assets/images/hero-bg2.jpg
+wp-content/themes/ashfxpro/assets/images/book-bg1.jpg
+wp-content/themes/ashfxpro/assets/images/book-bg2.jpg
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

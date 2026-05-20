@@ -75,6 +75,47 @@
     });
   }
 
+  /* ── Donut chart ── */
+  var donutSvg  = document.getElementById('stat-donut-svg');
+  var donutData = window.ashfxproDonutData;
+  if (donutSvg && donutData && donutData.segments) {
+    var CX = 134, CY = 134, R = 95, SW = 26, GAP = 4;
+    var C     = 2 * Math.PI * R;
+    var total = donutData.segments.reduce(function (s, seg) { return s + seg.value; }, 0);
+    var cumPct = 0;
+    var drawn  = [];
+
+    donutData.segments.forEach(function (seg) {
+      var pct    = seg.value / total;
+      var segLen = Math.max(0, pct * C - GAP);
+      var rotDeg = -90 + cumPct * 360;
+
+      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', CX);
+      circle.setAttribute('cy', CY);
+      circle.setAttribute('r', R);
+      circle.setAttribute('fill', 'none');
+      circle.setAttribute('stroke', seg.color);
+      circle.setAttribute('stroke-width', SW);
+      circle.setAttribute('stroke-linecap', 'butt');
+      circle.setAttribute('transform', 'rotate(' + rotDeg + ' ' + CX + ' ' + CY + ')');
+      circle.style.strokeDasharray = '0 ' + C;
+      donutSvg.appendChild(circle);
+      drawn.push({ el: circle, segLen: segLen });
+      cumPct += pct;
+    });
+
+    // Two rAF frames ensure elements are in the DOM before transition starts
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        drawn.forEach(function (d, i) {
+          d.el.style.transition = 'stroke-dasharray 1s ease-out ' + (i * 80) + 'ms';
+          d.el.style.strokeDasharray = d.segLen + ' ' + C;
+        });
+      });
+    });
+  }
+
   /* ── Carousel drag-to-scroll ── */
   document.querySelectorAll('.js-carousel').forEach(function (el) {
     var isDown = false, startX, scrollLeft;

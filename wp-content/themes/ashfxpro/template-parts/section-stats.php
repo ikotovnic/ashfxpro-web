@@ -1,6 +1,18 @@
 <?php
 $img  = get_template_directory_uri() . '/assets/images';
 $ico  = get_template_directory_uri() . '/assets/icons';
+
+$chart = get_option( 'ashfxpro_donut_chart', [
+    'total_count'  => 1365,
+    'period_label' => 'May',
+    'segments'     => [
+        ['label' => 'Russia', 'value' => 40, 'color' => '#00a1ff'],
+        ['label' => 'World',  'value' => 30, 'color' => '#0cd241'],
+        ['label' => 'Crypto', 'value' => 20, 'color' => '#c1d20c'],
+        ['label' => 'FX',     'value' => 5,  'color' => '#d23d0c'],
+        ['label' => 'Com',    'value' => 5,  'color' => '#ff9900'],
+    ],
+] );
 ?>
 <section class="section-stats" aria-label="<?php esc_attr_e( 'Trading statistics', 'ashfxpro' ); ?>">
 
@@ -52,26 +64,29 @@ $ico  = get_template_directory_uri() . '/assets/icons';
     <div class="stat-header">
       <span class="stat-label" style="font-weight:600;">Activity</span>
       <div class="dropdown-pill">
-        Month
+        <?php echo esc_html( $chart['period_label'] ); ?>
         <img class="arrow" src="<?php echo esc_url( "$ico/arrow-down.svg" ); ?>" alt="" aria-hidden="true">
       </div>
     </div>
 
     <div class="stat-chart-center" aria-hidden="true">
-      <img src="<?php echo esc_url( "$img/donut-chart.svg" ); ?>" alt="Activity chart" width="268" height="268">
+      <svg class="donut-chart" id="stat-donut-svg"
+           viewBox="0 0 268 268" width="268" height="268"
+           fill="none" aria-hidden="true"></svg>
     </div>
 
     <div class="stat-main">
-      <span class="stat-chart-num">1365</span>
-      <span class="stat-main__label">Publications in May</span>
+      <span class="stat-chart-num"><?php echo esc_html( $chart['total_count'] ); ?></span>
+      <span class="stat-main__label">Publications in <?php echo esc_html( $chart['period_label'] ); ?></span>
     </div>
 
     <div class="stat-legend">
-      <div class="legend-item"><span class="legend-dot" style="background:#00a1ff;"></span>Russia</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#0cd241;"></span>World</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#c1d20c;"></span>Crypto</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#d23d0c;"></span>FX</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#ff9900;"></span>Com</div>
+      <?php foreach ( $chart['segments'] as $seg ) : ?>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:<?php echo esc_attr( $seg['color'] ); ?>;"></span>
+          <?php echo esc_html( $seg['label'] ); ?>
+        </div>
+      <?php endforeach; ?>
     </div>
   </div>
 
@@ -124,3 +139,4 @@ $ico  = get_template_directory_uri() . '/assets/icons';
   </div>
 
 </section>
+<script>window.ashfxproDonutData=<?php echo wp_json_encode( $chart ); ?>;</script>

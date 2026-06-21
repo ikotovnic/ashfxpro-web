@@ -32,13 +32,13 @@ function ashfxpro_enqueue_assets() {
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/css/main.css',
         [ 'google-fonts-montserrat' ],
-        '1.5.0'
+        '1.7.0'
     );
     wp_enqueue_script(
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/js/main.js',
         [],
-        '1.5.0',
+        '1.7.0',
         true
     );
 }
@@ -351,6 +351,199 @@ function ashfxpro_pubs_page() {
     </form>
     </div>
     <?php
+}
+
+// ── Info section ─────────────────────────────────────────────────────────────
+function ashfxpro_info_defaults() {
+    return [
+        'subtitle' => 'Понятные торговые сигналы с проверяемой историей — от трейдера, который сам торгует на свои деньги.',
+        'stats'    => [
+            [ 'value' => '10+',    'label' => 'лет опыта в трейдинге' ],
+            [ 'value' => '19900+', 'label' => 'подписчиков в Telegram' ],
+            [ 'value' => '1000+',  'label' => 'сигналов за 2024 год' ],
+        ],
+    ];
+}
+
+add_action( 'admin_menu', function () {
+    add_options_page( 'AshFXPro Info', 'AshFXPro Info', 'manage_options', 'ashfxpro-info', 'ashfxpro_info_page' );
+} );
+
+function ashfxpro_info_page() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    if ( isset( $_POST['_wpnonce'] ) &&
+         wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_info_save' ) ) {
+        $saved = [
+            'subtitle' => sanitize_textarea_field( wp_unslash( $_POST['subtitle'] ?? '' ) ),
+            'stats'    => [],
+        ];
+        for ( $i = 0; $i < 3; $i++ ) {
+            $saved['stats'][] = [
+                'value' => sanitize_text_field( wp_unslash( $_POST[ "stat_{$i}_value" ] ?? '' ) ),
+                'label' => sanitize_text_field( wp_unslash( $_POST[ "stat_{$i}_label" ] ?? '' ) ),
+            ];
+        }
+        update_option( 'ashfxpro_info', $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+    }
+
+    $info  = get_option( 'ashfxpro_info', ashfxpro_info_defaults() );
+    $stats = array_pad( $info['stats'] ?? [], 3, [ 'value' => '', 'label' => '' ] );
+    ?>
+    <div class="wrap">
+    <h1>AshFXPro — Info section</h1>
+    <form method="post">
+        <?php wp_nonce_field( 'ashfxpro_info_save' ); ?>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="subtitle">Subtitle</label></th>
+                <td><textarea id="subtitle" name="subtitle" rows="3" class="large-text"><?php echo esc_textarea( $info['subtitle'] ?? '' ); ?></textarea></td>
+            </tr>
+            <?php for ( $i = 0; $i < 3; $i++ ) : $s = $stats[ $i ]; ?>
+            <tr>
+                <th scope="row">Stat <?php echo $i + 1; ?></th>
+                <td>
+                    <input name="stat_<?php echo $i; ?>_value" type="text" placeholder="e.g. 10+" class="regular-text"
+                           value="<?php echo esc_attr( $s['value'] ); ?>">
+                    &nbsp;
+                    <input name="stat_<?php echo $i; ?>_label" type="text" placeholder="Label" class="regular-text"
+                           value="<?php echo esc_attr( $s['label'] ); ?>">
+                </td>
+            </tr>
+            <?php endfor; ?>
+        </table>
+        <?php submit_button( 'Save changes' ); ?>
+    </form>
+    </div>
+    <?php
+}
+
+// POST /wp-json/ashfxpro/v1/info
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'ashfxpro/v1', '/info', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'ashfxpro_rest_update_info',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
+    ] );
+} );
+
+function ashfxpro_rest_update_info( WP_REST_Request $req ) {
+    $body = $req->get_json_params();
+    if ( empty( $body ) ) {
+        return new WP_Error( 'invalid_data', 'JSON body required.', [ 'status' => 400 ] );
+    }
+    $info = get_option( 'ashfxpro_info', ashfxpro_info_defaults() );
+    if ( isset( $body['subtitle'] ) ) {
+        $info['subtitle'] = sanitize_textarea_field( $body['subtitle'] );
+    }
+    if ( isset( $body['stats'] ) && is_array( $body['stats'] ) ) {
+        $info['stats'] = array_map( function ( $s ) {
+            return [
+                'value' => sanitize_text_field( $s['value'] ?? '' ),
+                'label' => sanitize_text_field( $s['label'] ?? '' ),
+            ];
+        }, array_slice( $body['stats'], 0, 3 ) );
+    }
+    update_option( 'ashfxpro_info', $info );
+    return new WP_REST_Response( [ 'ok' => true, 'data' => $info ], 200 );
+}
+
+// ── Forecasts (cards-stack) ───────────────────────────────────────────────────
+function ashfxpro_forecasts_defaults() {
+    return [
+        [ 'image_url' => '', 'ticker' => 'BTC/USDT', 'title' => 'Прогноз на рост: пробой уровня сопротивления подтверждён', 'date' => 'Янв 2024', 'channel_name' => 'AshFXPro', 'channel_url' => '#' ],
+        [ 'image_url' => '', 'ticker' => 'ETH/USDT', 'title' => 'Разворот от ключевой поддержки на таймфрейме 4H', 'date' => 'Фев 2024', 'channel_name' => 'AshFXPro', 'channel_url' => '#' ],
+        [ 'image_url' => '', 'ticker' => 'IRUS',     'title' => 'Импульсный выход после консолидации', 'date' => 'Мар 2024', 'channel_name' => 'AshFXPro', 'channel_url' => '#' ],
+        [ 'image_url' => '', 'ticker' => 'AFLT',     'title' => 'Коррекция завершена, возобновление восходящего тренда', 'date' => 'Апр 2024', 'channel_name' => 'AshFXPro', 'channel_url' => '#' ],
+        [ 'image_url' => '', 'ticker' => 'CCH6',     'title' => 'Накопление перед следующим движением', 'date' => 'Май 2024', 'channel_name' => 'AshFXPro', 'channel_url' => '#' ],
+    ];
+}
+
+add_action( 'admin_menu', function () {
+    add_options_page( 'AshFXPro Forecasts', 'AshFXPro Forecasts', 'manage_options', 'ashfxpro-forecasts', 'ashfxpro_forecasts_page' );
+} );
+
+function ashfxpro_forecasts_page() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    if ( isset( $_POST['_wpnonce'] ) &&
+         wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_forecasts_save' ) ) {
+        $saved = [];
+        for ( $i = 0; $i < 5; $i++ ) {
+            $saved[] = [
+                'image_url'    => esc_url_raw( wp_unslash( $_POST[ "fc_{$i}_img" ]     ?? '' ) ),
+                'ticker'       => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_ticker" ]  ?? '' ) ),
+                'title'        => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_title" ]   ?? '' ) ),
+                'date'         => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_date" ]    ?? '' ) ),
+                'channel_name' => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_chname" ]  ?? '' ) ),
+                'channel_url'  => esc_url_raw( wp_unslash( $_POST[ "fc_{$i}_churl" ]  ?? '' ) ),
+            ];
+        }
+        update_option( 'ashfxpro_forecasts', $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+    }
+
+    $forecasts = get_option( 'ashfxpro_forecasts', ashfxpro_forecasts_defaults() );
+    $blank     = [ 'image_url' => '', 'ticker' => '', 'title' => '', 'date' => '', 'channel_name' => '', 'channel_url' => '' ];
+    $forecasts = array_pad( $forecasts, 5, $blank );
+    ?>
+    <div class="wrap">
+    <h1>AshFXPro — Forecasts (cards)</h1>
+    <p>Exactly 5 cards. Image URL, ticker badge, title, date string, and Telegram channel.</p>
+    <form method="post">
+        <?php wp_nonce_field( 'ashfxpro_forecasts_save' ); ?>
+        <?php for ( $i = 0; $i < 5; $i++ ) : $f = $forecasts[ $i ]; ?>
+        <h2>Card <?php echo $i + 1; ?></h2>
+        <table class="form-table" role="presentation">
+            <tr><th>Image URL</th><td><input name="fc_<?php echo $i; ?>_img" type="url" class="large-text"
+                value="<?php echo esc_attr( $f['image_url'] ); ?>"></td></tr>
+            <tr><th>Ticker</th><td><input name="fc_<?php echo $i; ?>_ticker" type="text" class="regular-text"
+                value="<?php echo esc_attr( $f['ticker'] ); ?>"></td></tr>
+            <tr><th>Title</th><td><input name="fc_<?php echo $i; ?>_title" type="text" class="large-text"
+                value="<?php echo esc_attr( $f['title'] ); ?>"></td></tr>
+            <tr><th>Date</th><td><input name="fc_<?php echo $i; ?>_date" type="text" class="regular-text"
+                placeholder="e.g. Май 2024" value="<?php echo esc_attr( $f['date'] ); ?>"></td></tr>
+            <tr><th>Channel name</th><td><input name="fc_<?php echo $i; ?>_chname" type="text" class="regular-text"
+                value="<?php echo esc_attr( $f['channel_name'] ); ?>"></td></tr>
+            <tr><th>Channel URL</th><td><input name="fc_<?php echo $i; ?>_churl" type="url" class="large-text"
+                value="<?php echo esc_attr( $f['channel_url'] ); ?>"></td></tr>
+        </table>
+        <?php endfor; ?>
+        <?php submit_button( 'Save changes' ); ?>
+    </form>
+    </div>
+    <?php
+}
+
+// POST /wp-json/ashfxpro/v1/forecasts
+// Body: array of 5 objects { image_url, ticker, title, date, channel_name, channel_url }
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'ashfxpro/v1', '/forecasts', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'ashfxpro_rest_update_forecasts',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
+    ] );
+} );
+
+function ashfxpro_rest_update_forecasts( WP_REST_Request $req ) {
+    $body = $req->get_json_params();
+    if ( ! is_array( $body ) || empty( $body ) ) {
+        return new WP_Error( 'invalid_data', 'Expected a JSON array of 5 forecast objects.', [ 'status' => 400 ] );
+    }
+    $saved = [];
+    foreach ( array_slice( $body, 0, 5 ) as $f ) {
+        $saved[] = [
+            'image_url'    => esc_url_raw( $f['image_url']    ?? '' ),
+            'ticker'       => sanitize_text_field( $f['ticker']       ?? '' ),
+            'title'        => sanitize_text_field( $f['title']        ?? '' ),
+            'date'         => sanitize_text_field( $f['date']         ?? '' ),
+            'channel_name' => sanitize_text_field( $f['channel_name'] ?? '' ),
+            'channel_url'  => esc_url_raw( $f['channel_url']  ?? '' ),
+        ];
+    }
+    update_option( 'ashfxpro_forecasts', $saved );
+    return new WP_REST_Response( [ 'ok' => true, 'count' => count( $saved ) ], 200 );
 }
 
 // POST /wp-json/ashfxpro/v1/publications

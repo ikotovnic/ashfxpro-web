@@ -207,6 +207,68 @@
     }, { passive: false });
   });
 
+  /* ── Fonda parallax ── */
+  (function () {
+    var section = document.querySelector('.section-fonda');
+    var words   = document.querySelectorAll('.section-fonda .fonda-word');
+    if (!section || !words.length) return;
+
+    function update() {
+      var rect  = section.getBoundingClientRect();
+      var winH  = window.innerHeight;
+      var inView = rect.top < winH && rect.top + rect.height > 0;
+
+      words.forEach(function (el) {
+        var d   = parseFloat(el.dataset.distance) || 100;
+        var dir = el.dataset.direction;
+        if (!inView) {
+          el.style.transform = 'translateX(' + (dir === 'left' ? -d : d) + 'px)';
+          return;
+        }
+        var progress = Math.max(0, Math.min(1, (winH - rect.top) / (winH + rect.height)));
+        var speed    = parseFloat(el.dataset.speed) || 1;
+        var tx = dir === 'left'
+          ? -d * (0.2 - progress * speed)
+          :  d * (0.2 - progress * speed);
+        el.style.transform = 'translateX(' + tx + 'px)';
+      });
+    }
+
+    var tid;
+    function throttled() {
+      if (!tid) tid = setTimeout(function () { update(); tid = null; }, 16);
+    }
+
+    window.addEventListener('scroll', throttled, { passive: true });
+    window.addEventListener('resize', throttled, { passive: true });
+    update();
+  }());
+
+  /* ── Forecast card scale effect ── */
+  (function () {
+    var cards = document.querySelectorAll('.section-forecasts .card-item');
+    if (!cards.length) return;
+
+    function update() {
+      var triggerLine = window.innerHeight / 3;
+      cards.forEach(function (card) {
+        var rect = card.getBoundingClientRect();
+        var dist = triggerLine - rect.top;
+        if (dist > 0) {
+          card.style.transform = 'scale(' + Math.max(0.75, 1 - dist * 0.001) + ')';
+          card.style.transition = 'transform 0.1s ease-out';
+        } else {
+          card.style.transform = 'scale(1)';
+          card.style.transition = 'transform 0.2s ease-out';
+        }
+      });
+    }
+
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+  }());
+
   /* ── Publications carousel: vertical-scroll → horizontal shift ── */
   var pubCarousel = document.querySelector('.publications-carousel');
   if (pubCarousel) {

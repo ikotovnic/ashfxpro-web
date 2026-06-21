@@ -36,7 +36,7 @@ $features = [
       <img src="<?php echo esc_url( "$img/phone-mockup.png" ); ?>" alt="" loading="lazy">
     </div>
     <div class="pwa-card-logo">
-      <img src="<?php echo esc_url( "$img/nav-logo.svg" ); ?>" alt="ASHFXPRO" height="40">
+      <img src="<?php echo esc_url( "$img/wpa-logo.svg" ); ?>" alt="ASHFXPRO" height="40">
     </div>
     <a href="#" class="btn-primary"><?php echo esc_html( ashfxpro_t( 'pwa_btn', 'Перейти в веб-приложение' ) ); ?></a>
     <div class="pwa-card-info">

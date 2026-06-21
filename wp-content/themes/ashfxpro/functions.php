@@ -32,13 +32,13 @@ function ashfxpro_enqueue_assets() {
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/css/main.css',
         [ 'google-fonts-montserrat' ],
-        '1.4.0'
+        '1.5.0'
     );
     wp_enqueue_script(
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/js/main.js',
         [],
-        '1.4.0',
+        '1.5.0',
         true
     );
 }
@@ -102,7 +102,19 @@ function ashfxpro_register_strings() {
 }
 add_action( 'init', 'ashfxpro_register_strings' );
 
-// ── Donut chart: default data ─────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function ashfxpro_hex_rgba( $hex, $alpha ) {
+    $hex = ltrim( $hex, '#' );
+    if ( strlen( $hex ) === 3 ) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    return 'rgba(' . hexdec( substr( $hex, 0, 2 ) ) . ','
+                   . hexdec( substr( $hex, 2, 2 ) ) . ','
+                   . hexdec( substr( $hex, 4, 2 ) ) . ','
+                   . $alpha . ')';
+}
+
+// ── Stats: default data ───────────────────────────────────────────────────────
 function ashfxpro_donut_defaults() {
     return [
         'total_count'  => 1365,
@@ -113,6 +125,13 @@ function ashfxpro_donut_defaults() {
             ['label' => 'Crypto', 'value' => 20, 'color' => '#c1d20c'],
             ['label' => 'FX',     'value' => 5,  'color' => '#d23d0c'],
             ['label' => 'Com',    'value' => 5,  'color' => '#ff9900'],
+        ],
+        'bars' => [
+            ['ticker' => 'IRUS',     'value' => 420, 'color' => '#8800ff'],
+            ['ticker' => 'BTC/USDT', 'value' => 336, 'color' => '#0062ff'],
+            ['ticker' => 'ETH/USDT', 'value' => 380, 'color' => '#d23e0c'],
+            ['ticker' => 'AFLT',     'value' => 152, 'color' => '#c1d20c'],
+            ['ticker' => 'CCH6',     'value' => 200, 'color' => '#0cd241'],
         ],
     ];
 }
@@ -135,12 +154,21 @@ function ashfxpro_stats_page() {
         $saved['period_label'] = sanitize_text_field( wp_unslash( $_POST['period_label'] ?? $saved['period_label'] ) );
 
         foreach ( $saved['segments'] as $i => &$seg ) {
-            $key = 'seg_' . $i;
-            if ( isset( $_POST[ $key ] ) ) {
-                $seg['value'] = max( 0, absint( $_POST[ $key ] ) );
+            if ( isset( $_POST[ 'seg_' . $i ] ) ) {
+                $seg['value'] = max( 0, absint( $_POST[ 'seg_' . $i ] ) );
             }
         }
         unset( $seg );
+
+        $saved['bars'] = [];
+        for ( $i = 0; $i < 5; $i++ ) {
+            $ticker = sanitize_text_field( wp_unslash( $_POST[ "bar_{$i}_ticker" ] ?? '' ) );
+            $value  = absint( $_POST[ "bar_{$i}_value" ] ?? 0 );
+            $color  = sanitize_hex_color( $_POST[ "bar_{$i}_color" ] ?? '#000000' ) ?: '#000000';
+            if ( $ticker !== '' ) {
+                $saved['bars'][] = [ 'ticker' => $ticker, 'value' => $value, 'color' => $color ];
+            }
+        }
 
         update_option( 'ashfxpro_donut_chart', $saved );
         echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
@@ -170,6 +198,30 @@ function ashfxpro_stats_page() {
                            value="<?php echo esc_attr( $seg['value'] ); ?>" min="0" max="100"></td>
             </tr>
             <?php endforeach; ?>
+        </table>
+
+        <h2 style="margin-top:24px;">Bar Chart — Top Requests</h2>
+        <p>Values in absolute units. Sorted descending; top 5 shown. Heights are proportional to the max value.</p>
+        <table class="form-table" role="presentation">
+            <?php
+            $bars_saved = array_pad( $chart['bars'] ?? [], 5, [ 'ticker' => '', 'value' => 0, 'color' => '#000000' ] );
+            for ( $i = 0; $i < 5; $i++ ) :
+                $b = $bars_saved[ $i ];
+            ?>
+            <tr>
+                <th scope="row">Bar <?php echo $i + 1; ?></th>
+                <td>
+                    <input name="bar_<?php echo $i; ?>_ticker" type="text" placeholder="Ticker"
+                           value="<?php echo esc_attr( $b['ticker'] ); ?>" style="width:120px;">
+                    &nbsp;
+                    <input name="bar_<?php echo $i; ?>_value" type="number" placeholder="Value"
+                           value="<?php echo esc_attr( $b['value'] ); ?>" class="small-text" min="0">
+                    &nbsp;
+                    <input name="bar_<?php echo $i; ?>_color" type="color"
+                           value="<?php echo esc_attr( $b['color'] ); ?>">
+                </td>
+            </tr>
+            <?php endfor; ?>
         </table>
         <?php submit_button( 'Save changes' ); ?>
     </form>
@@ -206,6 +258,125 @@ function ashfxpro_rest_update_donut( WP_REST_Request $req ) {
         }
         unset( $seg );
     }
+    if ( isset( $body['bars'] ) && is_array( $body['bars'] ) ) {
+        $chart['bars'] = array_map( function ( $b ) {
+            return [
+                'ticker' => sanitize_text_field( $b['ticker'] ?? '' ),
+                'value'  => max( 0, absint( $b['value'] ?? 0 ) ),
+                'color'  => sanitize_hex_color( $b['color'] ?? '#000000' ) ?: '#000000',
+            ];
+        }, $body['bars'] );
+    }
     update_option( 'ashfxpro_donut_chart', $chart );
     return new WP_REST_Response( [ 'ok' => true, 'data' => $chart ], 200 );
+}
+
+// ── Publications ──────────────────────────────────────────────────────────────
+function ashfxpro_publications_defaults() {
+    $img = get_template_directory_uri() . '/assets/images';
+    return [
+        [ 'tg_url' => '#', 'image_url' => $img . '/post-bg1.jpg', 'date' => gmdate( 'c' ),
+          'text'   => 'Fact + new forecast. Frame 1H/4H. Not an investment recommendation. #PENDLEUSDT' ],
+        [ 'tg_url' => '#', 'image_url' => $img . '/post-bg2.jpg', 'date' => gmdate( 'c', strtotime( '-1 day' ) ),
+          'text'   => 'Technical setup confirmed. Entry zone reached. #BTCUSDT #crypto' ],
+        [ 'tg_url' => '#', 'image_url' => $img . '/post-bg3.jpg', 'date' => gmdate( 'c', strtotime( '-2 days' ) ),
+          'text'   => 'Strong momentum. Watch the 4H close. #ETHUSDT' ],
+        [ 'tg_url' => '#', 'image_url' => $img . '/post-bg4.jpg', 'date' => gmdate( 'c', strtotime( '-3 days' ) ),
+          'text'   => 'Breakout pattern forming. Not an investment recommendation. #IRUS #AFLT' ],
+        [ 'tg_url' => '#', 'image_url' => $img . '/post-bg1.jpg', 'date' => gmdate( 'c', strtotime( '-4 days' ) ),
+          'text'   => 'Key level reaction. Frame 1H. #CCH6 #futures' ],
+    ];
+}
+
+function ashfxpro_format_pub_date( $date_str ) {
+    try {
+        $dt = new DateTime( $date_str );
+    } catch ( Exception $e ) {
+        return esc_html( $date_str );
+    }
+    $today     = new DateTime( 'today' );
+    $yesterday = new DateTime( 'yesterday' );
+    $dt_day    = ( clone $dt )->setTime( 0, 0, 0 );
+    if ( $dt_day == $today )     { return 'Today ' . $dt->format( 'H:i' ); }
+    if ( $dt_day == $yesterday ) { return 'Yesterday ' . $dt->format( 'H:i' ); }
+    return $dt->format( 'j M H:i' );
+}
+
+// Publications admin page (Settings › AshFXPro Publications)
+add_action( 'admin_menu', function () {
+    add_options_page( 'AshFXPro Publications', 'AshFXPro Publications', 'manage_options', 'ashfxpro-pubs', 'ashfxpro_pubs_page' );
+} );
+
+function ashfxpro_pubs_page() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    if ( isset( $_POST['_wpnonce'] ) &&
+         wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_pubs_save' ) ) {
+        $saved = [];
+        for ( $i = 0; $i < 5; $i++ ) {
+            $tg    = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_tg" ]    ?? '' ) );
+            $img   = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_img" ]   ?? '' ) );
+            $date  = sanitize_text_field( wp_unslash( $_POST[ "pub_{$i}_date" ] ?? '' ) );
+            $text  = sanitize_textarea_field( wp_unslash( $_POST[ "pub_{$i}_text" ] ?? '' ) );
+            if ( $tg || $text ) {
+                $saved[] = [ 'tg_url' => $tg, 'image_url' => $img, 'date' => $date, 'text' => $text ];
+            }
+        }
+        update_option( 'ashfxpro_publications', $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+    }
+
+    $pubs = get_option( 'ashfxpro_publications', ashfxpro_publications_defaults() );
+    $pubs = array_pad( $pubs, 5, [ 'tg_url' => '', 'image_url' => '', 'date' => '', 'text' => '' ] );
+    ?>
+    <div class="wrap">
+    <h1>AshFXPro — Publications</h1>
+    <p>Up to 5 posts. Sorted by date descending by the external service.</p>
+    <form method="post">
+        <?php wp_nonce_field( 'ashfxpro_pubs_save' ); ?>
+        <?php for ( $i = 0; $i < 5; $i++ ) : $p = $pubs[$i]; ?>
+        <h2>Post <?php echo $i + 1; ?></h2>
+        <table class="form-table" role="presentation">
+            <tr><th>Telegram URL</th><td><input name="pub_<?php echo $i; ?>_tg" type="url" class="regular-text"
+                value="<?php echo esc_attr( $p['tg_url'] ); ?>"></td></tr>
+            <tr><th>Image URL</th><td><input name="pub_<?php echo $i; ?>_img" type="url" class="regular-text"
+                value="<?php echo esc_attr( $p['image_url'] ); ?>"></td></tr>
+            <tr><th>Date (ISO 8601)</th><td><input name="pub_<?php echo $i; ?>_date" type="datetime-local" class="regular-text"
+                value="<?php echo esc_attr( str_replace( '+00:00', '', $p['date'] ) ); ?>"></td></tr>
+            <tr><th>Text (with #hashtags)</th><td><textarea name="pub_<?php echo $i; ?>_text" rows="3"
+                class="large-text"><?php echo esc_textarea( $p['text'] ); ?></textarea></td></tr>
+        </table>
+        <?php endfor; ?>
+        <?php submit_button( 'Save changes' ); ?>
+    </form>
+    </div>
+    <?php
+}
+
+// POST /wp-json/ashfxpro/v1/publications
+// Body: array of { tg_url, image_url, date, text } — replaces all 5 posts
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'ashfxpro/v1', '/publications', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'ashfxpro_rest_update_pubs',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
+    ] );
+} );
+
+function ashfxpro_rest_update_pubs( WP_REST_Request $req ) {
+    $body = $req->get_json_params();
+    if ( ! is_array( $body ) || empty( $body ) ) {
+        return new WP_Error( 'invalid_data', 'Expected a JSON array of posts.', [ 'status' => 400 ] );
+    }
+    $saved = [];
+    foreach ( array_slice( $body, 0, 5 ) as $p ) {
+        $saved[] = [
+            'tg_url'    => esc_url_raw( $p['tg_url']    ?? '' ),
+            'image_url' => esc_url_raw( $p['image_url'] ?? '' ),
+            'date'      => sanitize_text_field( $p['date'] ?? '' ),
+            'text'      => sanitize_textarea_field( $p['text'] ?? '' ),
+        ];
+    }
+    update_option( 'ashfxpro_publications', $saved );
+    return new WP_REST_Response( [ 'ok' => true, 'count' => count( $saved ) ], 200 );
 }

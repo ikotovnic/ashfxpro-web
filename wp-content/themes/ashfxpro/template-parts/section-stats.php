@@ -2,17 +2,14 @@
 $img  = get_template_directory_uri() . '/assets/images';
 $ico  = get_template_directory_uri() . '/assets/icons';
 
-$chart = get_option( 'ashfxpro_donut_chart', [
-    'total_count'  => 1365,
-    'period_label' => 'May',
-    'segments'     => [
-        ['label' => 'Russia', 'value' => 40, 'color' => '#00a1ff'],
-        ['label' => 'World',  'value' => 30, 'color' => '#0cd241'],
-        ['label' => 'Crypto', 'value' => 20, 'color' => '#c1d20c'],
-        ['label' => 'FX',     'value' => 5,  'color' => '#d23d0c'],
-        ['label' => 'Com',    'value' => 5,  'color' => '#ff9900'],
-    ],
-] );
+$chart = get_option( 'ashfxpro_donut_chart', ashfxpro_donut_defaults() );
+
+// Bar chart: sort desc, top 5, compute pixel heights
+$bars_raw = $chart['bars'] ?? [];
+usort( $bars_raw, fn( $a, $b ) => (int) $b['value'] <=> (int) $a['value'] );
+$bars    = array_slice( $bars_raw, 0, 5 );
+$max_val = ! empty( $bars ) ? max( 1, (int) $bars[0]['value'] ) : 1;
+$max_h   = 189;
 ?>
 <section class="section-stats" aria-label="<?php esc_attr_e( 'Trading statistics', 'ashfxpro' ); ?>">
 
@@ -94,45 +91,28 @@ $chart = get_option( 'ashfxpro_donut_chart', [
   <div class="stat-card stat-card--bars">
     <div class="bars-title-row">
       <span>Top requests</span>
-      <span>May</span>
+      <span><?php echo esc_html( $chart['period_label'] ); ?></span>
     </div>
 
     <div class="bars-container" aria-label="Top requested assets">
-      <div class="bar-item" style="height:189px;">
+      <?php foreach ( $bars as $bar ) :
+        $h_px  = (int) round( $bar['value'] / $max_val * $max_h );
+        $color = esc_attr( $bar['color'] );
+        $rgba  = esc_attr( ashfxpro_hex_rgba( $bar['color'], 0.05 ) );
+        $name  = esc_html( $bar['ticker'] );
+        // Long tickers split at "/" for two-line display
+        $name_html = strpos( $bar['ticker'], '/' ) !== false
+            ? str_replace( '/', '/<br>', esc_html( $bar['ticker'] ) )
+            : esc_html( $bar['ticker'] );
+      ?>
+      <div class="bar-item" style="height:28px" data-bar-h="<?php echo $h_px; ?>">
         <div class="bar-fill">
-          <div class="bar-line" style="background:#8800ff;"></div>
-          <div class="bar-gradient" style="background:linear-gradient(to bottom, rgba(136,0,255,0.05), rgba(136,0,255,0));"></div>
+          <div class="bar-line" style="background:<?php echo $color; ?>;"></div>
+          <div class="bar-gradient" style="background:linear-gradient(to bottom,<?php echo $rgba; ?>,transparent);"></div>
         </div>
-        <span class="bar-name">IRUS</span>
+        <span class="bar-name"><?php echo $name_html; ?></span>
       </div>
-      <div class="bar-item" style="height:151px;">
-        <div class="bar-fill">
-          <div class="bar-line" style="background:#0062ff;"></div>
-          <div class="bar-gradient" style="background:linear-gradient(to bottom, rgba(0,98,255,0.05), rgba(0,59,153,0));"></div>
-        </div>
-        <span class="bar-name">BTC/<br>USDT</span>
-      </div>
-      <div class="bar-item" style="height:171px;">
-        <div class="bar-fill">
-          <div class="bar-line" style="background:#d23e0c;"></div>
-          <div class="bar-gradient" style="background:linear-gradient(to bottom, rgba(210,62,12,0.05), rgba(108,32,6,0));"></div>
-        </div>
-        <span class="bar-name">ETH/<br>USDT</span>
-      </div>
-      <div class="bar-item" style="height:68px;">
-        <div class="bar-fill">
-          <div class="bar-line" style="background:#c1d20c;"></div>
-          <div class="bar-gradient" style="background:rgba(193,210,12,0.05);"></div>
-        </div>
-        <span class="bar-name">AFLT</span>
-      </div>
-      <div class="bar-item" style="height:90px;">
-        <div class="bar-fill">
-          <div class="bar-line" style="background:#0cd241;"></div>
-          <div class="bar-gradient" style="background:linear-gradient(to right, rgba(12,210,65,0.05), rgba(6,108,33,0));"></div>
-        </div>
-        <span class="bar-name">CCH6</span>
-      </div>
+      <?php endforeach; ?>
     </div>
 
     <p class="stat-analytics-label">Personal analytics</p>

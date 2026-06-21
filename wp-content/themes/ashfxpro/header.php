@@ -67,7 +67,7 @@ $nav_links = [
             <img src="<?php echo esc_url( "$img/menu-phone.png" ); ?>" alt="" loading="lazy">
           </div>
           <div class="site-nav__pwa-logo">
-            <img src="<?php echo esc_url( "$img/menu-logo.svg" ); ?>" alt="ASHFXPRO" loading="lazy">
+            <img src="<?php echo esc_url( "$img/wpa-logo.svg" ); ?>" alt="ASHFXPRO" loading="lazy">
           </div>
           <a href="#" class="btn-primary site-nav__pwa-btn">Перейти в веб-приложение</a>
           <p class="site-nav__pwa-info">

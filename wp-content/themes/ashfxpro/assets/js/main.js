@@ -79,7 +79,7 @@
   var donutSvg  = document.getElementById('stat-donut-svg');
   var donutData = window.ashfxproDonutData;
   if (donutSvg && donutData && donutData.segments) {
-    var CX = 134, CY = 134, R = 95, SW = 26, GAP = 4;
+    var CX = 134, CY = 134, R = 125, SW = 3, GAP = 5;
     var C     = 2 * Math.PI * R;
     var total = donutData.segments.reduce(function (s, seg) { return s + seg.value; }, 0);
     var cumPct = 0;
@@ -105,12 +105,46 @@
       cumPct += pct;
     });
 
+    var counterEl     = document.querySelector('.stat-chart-num');
+    var counterTarget = donutData.total_count ? parseInt(donutData.total_count, 10) : 0;
+    if (counterEl) counterEl.textContent = '0';
+
     // Two rAF frames ensure elements are in the DOM before transition starts
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
+        // Donut segments
         drawn.forEach(function (d, i) {
           d.el.style.transition = 'stroke-dasharray 1s ease-out ' + (i * 80) + 'ms';
           d.el.style.strokeDasharray = d.segLen + ' ' + C;
+        });
+
+        // Counter: 0 → total_count, 1.5s cubic ease-out
+        if (counterEl && counterTarget > 0) {
+          var startTs  = null;
+          var duration = 1500;
+          function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+          function tick(ts) {
+            if (!startTs) startTs = ts;
+            var progress = Math.min((ts - startTs) / duration, 1);
+            counterEl.textContent = Math.round(easeOut(progress) * counterTarget);
+            if (progress < 1) { requestAnimationFrame(tick); }
+            else { counterEl.textContent = counterTarget; }
+          }
+          requestAnimationFrame(tick);
+        }
+      });
+    });
+  }
+
+  /* ── Bar chart ── */
+  var barItems = document.querySelectorAll('.bar-item[data-bar-h]');
+  if (barItems.length) {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        barItems.forEach(function (bar, i) {
+          var targetH = parseInt(bar.dataset.barH, 10);
+          bar.style.transition = 'height 0.8s ease-out ' + (i * 80) + 'ms';
+          bar.style.height = targetH + 'px';
         });
       });
     });
@@ -118,34 +152,80 @@
 
   /* ── Carousel drag-to-scroll ── */
   document.querySelectorAll('.js-carousel').forEach(function (el) {
-    var isDown = false, startX, scrollLeft;
+    var isDown = false, isDragging = false, startX, startY, scrollLeft;
+    var DRAG_THRESHOLD = 5;
 
+    // ── Mouse ──
     el.addEventListener('mousedown', function (e) {
-      isDown = true;
+      isDown     = true;
+      isDragging = false;
       el.classList.add('dragging');
-      startX    = e.pageX - el.offsetLeft;
+      startX     = e.pageX - el.offsetLeft;
       scrollLeft = el.scrollLeft;
     });
 
-    el.addEventListener('mouseleave', function () { isDown = false; el.classList.remove('dragging'); });
-    el.addEventListener('mouseup',    function () { isDown = false; el.classList.remove('dragging'); });
+    el.addEventListener('mouseleave', function () { isDown = false; isDragging = false; el.classList.remove('dragging'); });
+    el.addEventListener('mouseup',    function () { isDown = false; isDragging = false; el.classList.remove('dragging'); });
 
     el.addEventListener('mousemove', function (e) {
       if (!isDown) return;
-      e.preventDefault();
       var x = e.pageX - el.offsetLeft;
+      if (!isDragging && Math.abs(x - startX) > DRAG_THRESHOLD) isDragging = true;
+      if (!isDragging) return;
+      e.preventDefault();
       el.scrollLeft = scrollLeft - (x - startX) * 1.5;
     });
 
+    // Prevent <a> link activation after a drag
+    el.addEventListener('click', function (e) {
+      if (isDragging) e.preventDefault();
+    }, true);
+
+    // ── Touch (direction-aware) ──
+    var touchStartX, touchStartY, touchScrollLeft, touchAxisLocked = null;
+
     el.addEventListener('touchstart', function (e) {
-      startX    = e.touches[0].pageX - el.offsetLeft;
-      scrollLeft = el.scrollLeft;
+      touchStartX    = e.touches[0].pageX;
+      touchStartY    = e.touches[0].pageY;
+      touchScrollLeft = el.scrollLeft;
+      touchAxisLocked = null;
     }, { passive: true });
 
     el.addEventListener('touchmove', function (e) {
-      var x = e.touches[0].pageX - el.offsetLeft;
-      el.scrollLeft = scrollLeft - (x - startX) * 1.5;
-    }, { passive: true });
+      var dx = e.touches[0].pageX - touchStartX;
+      var dy = e.touches[0].pageY - touchStartY;
+
+      if (touchAxisLocked === null) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        touchAxisLocked = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+      }
+
+      if (touchAxisLocked === 'x') {
+        e.preventDefault();
+        el.scrollLeft = touchScrollLeft - dx * 1.5;
+      }
+    }, { passive: false });
   });
+
+  /* ── Publications carousel: vertical-scroll → horizontal shift ── */
+  var pubCarousel = document.querySelector('.publications-carousel');
+  if (pubCarousel) {
+    var prevScrollY = window.scrollY;
+    var scrollTicking = false;
+
+    window.addEventListener('scroll', function () {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(function () {
+        var dy = window.scrollY - prevScrollY;
+        prevScrollY = window.scrollY;
+        var rect = pubCarousel.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          pubCarousel.scrollLeft = Math.max(0, pubCarousel.scrollLeft + dy * 0.5);
+        }
+        scrollTicking = false;
+      });
+    }, { passive: true });
+  }
 
 })();

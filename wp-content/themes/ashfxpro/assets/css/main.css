@@ -59,7 +59,6 @@ button { cursor: pointer; border: none; background: none; font: inherit; color: 
 .site-main {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 
 }
 
@@ -767,7 +766,6 @@ p { margin: 0; }
   gap: 20px;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 20px 0;
   cursor: grab;
 }
 
@@ -781,6 +779,9 @@ p { margin: 0; }
   border-radius: var(--border-radius);
   overflow: hidden;
   position: relative;
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .post-card-bg {
@@ -807,6 +808,11 @@ p { margin: 0; }
   position: absolute;
   inset: 0;
   background: rgba(7,9,13,0.85);
+  transition: background 0.4s ease;
+}
+
+.post-card:hover .post-card-bg-dark {
+  background: rgba(7,9,13,0.3);
 }
 
 .post-card-content {
@@ -814,6 +820,7 @@ p { margin: 0; }
   z-index: 1;
   display: flex;
   height: 100%;
+  
 }
 
 .post-card-left {
@@ -1029,12 +1036,14 @@ p { margin: 0; }
   color: var(--white);
   white-space: nowrap;
   align-self: flex-start;
+  position: relative;
 }
 
 .pwa-card-info {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
 }
 
 .pwa-card-info__title {
@@ -1243,7 +1252,7 @@ p { margin: 0; }
     max-width: 100%;
     min-width: unset;
     height: auto;
-    min-height: 320px;
+    min-height: 350px;
   }
 
   .stat-card--chart {
@@ -1303,11 +1312,12 @@ p { margin: 0; }
 
   .hero-title { font-size: 28px; }
 
-  .stat-card { min-height: 280px; padding: 20px var(--pad) 28px; }
+  .stat-card {  padding: 20px var(--pad) 28px; }
 
   .stat-num { font-size: var(--num1); }
 
-  .post-card { width: 300px; height: 260px; }
+  .post-card { width: 300px; height: 400px; }
+  .post-card-content{flex-direction: column;}
 
   .access-heading { font-size: var(--h1); min-width: unset; }
 

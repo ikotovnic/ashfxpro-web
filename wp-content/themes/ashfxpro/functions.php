@@ -32,13 +32,13 @@ function ashfxpro_enqueue_assets() {
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/css/main.css',
         [ 'google-fonts-montserrat' ],
-        '1.7.0'
+        '1.8.0'
     );
     wp_enqueue_script(
         'ashfxpro-main',
         get_template_directory_uri() . '/assets/js/main.js',
         [],
-        '1.7.0',
+        '1.8.0',
         true
     );
 }
@@ -72,7 +72,6 @@ function ashfxpro_register_strings() {
         'stat_analytics'    => 'Personal analytics',
         // Publications
         'pub_title'         => 'Recent publications',
-        'pub_post_title'    => 'Fact + new forecast. Frame 1H/4H. Not an investment recommendation.',
         // Access
         'access_heading'    => "Прямой доступ\nбез Telegram\nи VPN",
         'access_desc'       => 'Чтобы вы не зависели от стабильности telegram, мы создали автономное веб-приложение. Это гарантирует получение сигналов и доступ к постам в любой ситуации, даже при технических сбоях',
@@ -103,6 +102,11 @@ function ashfxpro_register_strings() {
 add_action( 'init', 'ashfxpro_register_strings' );
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function ashfxpro_t( $str ) {
+    return function_exists( 'pll__' ) ? pll__( $str ) : $str;
+}
+
 function ashfxpro_hex_rgba( $hex, $alpha ) {
     $hex = ltrim( $hex, '#' );
     if ( strlen( $hex ) === 3 ) {
@@ -117,9 +121,15 @@ function ashfxpro_hex_rgba( $hex, $alpha ) {
 // ── Stats: default data ───────────────────────────────────────────────────────
 function ashfxpro_donut_defaults() {
     return [
-        'total_count'  => 1365,
-        'period_label' => 'May',
-        'segments'     => [
+        'total_count'     => 1365,
+        'period_label'    => 'May',
+        'stat_return'     => '+112R',
+        'stat_return_pct' => '+45.8%',
+        'stat_return_pips'=> '+28K pips',
+        'stat_profit'     => '+3.6R',
+        'stat_drawdown'   => '8.5%',
+        'stat_rr'         => '1.92',
+        'segments'        => [
             ['label' => 'Russia', 'value' => 40, 'color' => '#00a1ff'],
             ['label' => 'World',  'value' => 30, 'color' => '#0cd241'],
             ['label' => 'Crypto', 'value' => 20, 'color' => '#c1d20c'],
@@ -150,8 +160,14 @@ function ashfxpro_stats_page() {
          wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_stats_save' ) ) {
 
         $saved = ashfxpro_donut_defaults();
-        $saved['total_count']  = absint( $_POST['total_count'] ?? $saved['total_count'] );
-        $saved['period_label'] = sanitize_text_field( wp_unslash( $_POST['period_label'] ?? $saved['period_label'] ) );
+        $saved['total_count']      = absint( $_POST['total_count'] ?? $saved['total_count'] );
+        $saved['period_label']     = sanitize_text_field( wp_unslash( $_POST['period_label']     ?? $saved['period_label'] ) );
+        $saved['stat_return']      = sanitize_text_field( wp_unslash( $_POST['stat_return']      ?? $saved['stat_return'] ) );
+        $saved['stat_return_pct']  = sanitize_text_field( wp_unslash( $_POST['stat_return_pct']  ?? $saved['stat_return_pct'] ) );
+        $saved['stat_return_pips'] = sanitize_text_field( wp_unslash( $_POST['stat_return_pips'] ?? $saved['stat_return_pips'] ) );
+        $saved['stat_profit']      = sanitize_text_field( wp_unslash( $_POST['stat_profit']      ?? $saved['stat_profit'] ) );
+        $saved['stat_drawdown']    = sanitize_text_field( wp_unslash( $_POST['stat_drawdown']    ?? $saved['stat_drawdown'] ) );
+        $saved['stat_rr']          = sanitize_text_field( wp_unslash( $_POST['stat_rr']          ?? $saved['stat_rr'] ) );
 
         foreach ( $saved['segments'] as $i => &$seg ) {
             if ( isset( $_POST[ 'seg_' . $i ] ) ) {
@@ -180,6 +196,41 @@ function ashfxpro_stats_page() {
     <h1>AshFXPro — Stats</h1>
     <form method="post">
         <?php wp_nonce_field( 'ashfxpro_stats_save' ); ?>
+        <h2>Green card — Total Return</h2>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="stat_return">Main value (e.g. +112R)</label></th>
+                <td><input id="stat_return" name="stat_return" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_return'] ?? '+112R' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="stat_return_pct">Percentage (e.g. +45.8%)</label></th>
+                <td><input id="stat_return_pct" name="stat_return_pct" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_return_pct'] ?? '+45.8%' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="stat_return_pips">Pips (e.g. +28K pips)</label></th>
+                <td><input id="stat_return_pips" name="stat_return_pips" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_return_pips'] ?? '+28K pips' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="stat_profit">Total Profit (e.g. +3.6R)</label></th>
+                <td><input id="stat_profit" name="stat_profit" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_profit'] ?? '+3.6R' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="stat_drawdown">Max Drawdown (e.g. 8.5%)</label></th>
+                <td><input id="stat_drawdown" name="stat_drawdown" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_drawdown'] ?? '8.5%' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="stat_rr">Average R/R (e.g. 1.92)</label></th>
+                <td><input id="stat_rr" name="stat_rr" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $chart['stat_rr'] ?? '1.92' ); ?>"></td>
+            </tr>
+        </table>
+
+        <h2 style="margin-top:24px;">Activity chart</h2>
         <table class="form-table" role="presentation">
             <tr>
                 <th scope="row"><label for="total_count">Publications count</label></th>
@@ -310,31 +361,40 @@ add_action( 'admin_menu', function () {
 function ashfxpro_pubs_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;
 
+    $lang       = in_array( $_REQUEST['lang'] ?? 'en', [ 'en', 'ru' ], true ) ? sanitize_key( $_REQUEST['lang'] ?? 'en' ) : 'en';
+    $option_key = 'ashfxpro_publications_' . $lang;
+
     if ( isset( $_POST['_wpnonce'] ) &&
          wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_pubs_save' ) ) {
         $saved = [];
         for ( $i = 0; $i < 5; $i++ ) {
-            $tg    = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_tg" ]    ?? '' ) );
-            $img   = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_img" ]   ?? '' ) );
-            $date  = sanitize_text_field( wp_unslash( $_POST[ "pub_{$i}_date" ] ?? '' ) );
-            $text  = sanitize_textarea_field( wp_unslash( $_POST[ "pub_{$i}_text" ] ?? '' ) );
+            $tg   = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_tg" ]   ?? '' ) );
+            $img  = esc_url_raw( wp_unslash( $_POST[ "pub_{$i}_img" ]  ?? '' ) );
+            $date = sanitize_text_field( wp_unslash( $_POST[ "pub_{$i}_date" ] ?? '' ) );
+            $text = sanitize_textarea_field( wp_unslash( $_POST[ "pub_{$i}_text" ] ?? '' ) );
             if ( $tg || $text ) {
                 $saved[] = [ 'tg_url' => $tg, 'image_url' => $img, 'date' => $date, 'text' => $text ];
             }
         }
-        update_option( 'ashfxpro_publications', $saved );
-        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+        update_option( $option_key, $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved (' . esc_html( strtoupper( $lang ) ) . ').</p></div>';
     }
 
-    $pubs = get_option( 'ashfxpro_publications', ashfxpro_publications_defaults() );
-    $pubs = array_pad( $pubs, 5, [ 'tg_url' => '', 'image_url' => '', 'date' => '', 'text' => '' ] );
+    $pubs     = get_option( $option_key, ashfxpro_publications_defaults() );
+    $pubs     = array_pad( $pubs, 5, [ 'tg_url' => '', 'image_url' => '', 'date' => '', 'text' => '' ] );
+    $base_url = admin_url( 'options-general.php?page=ashfxpro-pubs' );
     ?>
     <div class="wrap">
     <h1>AshFXPro — Publications</h1>
     <p>Up to 5 posts. Sorted by date descending by the external service.</p>
+    <nav class="nav-tab-wrapper">
+      <a href="<?php echo esc_url( $base_url . '&lang=en' ); ?>" class="nav-tab <?php echo $lang === 'en' ? 'nav-tab-active' : ''; ?>">English</a>
+      <a href="<?php echo esc_url( $base_url . '&lang=ru' ); ?>" class="nav-tab <?php echo $lang === 'ru' ? 'nav-tab-active' : ''; ?>">Русский</a>
+    </nav>
     <form method="post">
         <?php wp_nonce_field( 'ashfxpro_pubs_save' ); ?>
-        <?php for ( $i = 0; $i < 5; $i++ ) : $p = $pubs[$i]; ?>
+        <input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>">
+        <?php for ( $i = 0; $i < 5; $i++ ) : $p = $pubs[ $i ]; ?>
         <h2>Post <?php echo $i + 1; ?></h2>
         <table class="form-table" role="presentation">
             <tr><th>Telegram URL</th><td><input name="pub_<?php echo $i; ?>_tg" type="url" class="regular-text"
@@ -347,7 +407,7 @@ function ashfxpro_pubs_page() {
                 class="large-text"><?php echo esc_textarea( $p['text'] ); ?></textarea></td></tr>
         </table>
         <?php endfor; ?>
-        <?php submit_button( 'Save changes' ); ?>
+        <?php submit_button( 'Save (' . strtoupper( $lang ) . ')' ); ?>
     </form>
     </div>
     <?php
@@ -356,8 +416,10 @@ function ashfxpro_pubs_page() {
 // ── Info section ─────────────────────────────────────────────────────────────
 function ashfxpro_info_defaults() {
     return [
-        'subtitle' => 'Понятные торговые сигналы с проверяемой историей — от трейдера, который сам торгует на свои деньги.',
-        'stats'    => [
+        'heading_accent' => '10 лет',
+        'heading_text'   => 'превращаю рыночный шум в четкий анализ',
+        'subtitle'       => 'Понятные торговые сигналы с проверяемой историей — от трейдера, который сам торгует на свои деньги.',
+        'stats'          => [
             [ 'value' => '10+',    'label' => 'лет опыта в трейдинге' ],
             [ 'value' => '19900+', 'label' => 'подписчиков в Telegram' ],
             [ 'value' => '1000+',  'label' => 'сигналов за 2024 год' ],
@@ -372,11 +434,16 @@ add_action( 'admin_menu', function () {
 function ashfxpro_info_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;
 
+    $lang       = in_array( $_REQUEST['lang'] ?? 'en', [ 'en', 'ru' ], true ) ? sanitize_key( $_REQUEST['lang'] ?? 'en' ) : 'en';
+    $option_key = 'ashfxpro_info_' . $lang;
+
     if ( isset( $_POST['_wpnonce'] ) &&
          wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_info_save' ) ) {
         $saved = [
-            'subtitle' => sanitize_textarea_field( wp_unslash( $_POST['subtitle'] ?? '' ) ),
-            'stats'    => [],
+            'heading_accent' => sanitize_text_field( wp_unslash( $_POST['heading_accent'] ?? '' ) ),
+            'heading_text'   => sanitize_text_field( wp_unslash( $_POST['heading_text']   ?? '' ) ),
+            'subtitle'       => sanitize_textarea_field( wp_unslash( $_POST['subtitle']   ?? '' ) ),
+            'stats'          => [],
         ];
         for ( $i = 0; $i < 3; $i++ ) {
             $saved['stats'][] = [
@@ -384,18 +451,34 @@ function ashfxpro_info_page() {
                 'label' => sanitize_text_field( wp_unslash( $_POST[ "stat_{$i}_label" ] ?? '' ) ),
             ];
         }
-        update_option( 'ashfxpro_info', $saved );
-        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+        update_option( $option_key, $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved (' . esc_html( strtoupper( $lang ) ) . ').</p></div>';
     }
 
-    $info  = get_option( 'ashfxpro_info', ashfxpro_info_defaults() );
-    $stats = array_pad( $info['stats'] ?? [], 3, [ 'value' => '', 'label' => '' ] );
+    $info     = get_option( $option_key, ashfxpro_info_defaults() );
+    $stats    = array_pad( $info['stats'] ?? [], 3, [ 'value' => '', 'label' => '' ] );
+    $base_url = admin_url( 'options-general.php?page=ashfxpro-info' );
     ?>
     <div class="wrap">
     <h1>AshFXPro — Info section</h1>
+    <nav class="nav-tab-wrapper">
+      <a href="<?php echo esc_url( $base_url . '&lang=en' ); ?>" class="nav-tab <?php echo $lang === 'en' ? 'nav-tab-active' : ''; ?>">English</a>
+      <a href="<?php echo esc_url( $base_url . '&lang=ru' ); ?>" class="nav-tab <?php echo $lang === 'ru' ? 'nav-tab-active' : ''; ?>">Русский</a>
+    </nav>
     <form method="post">
         <?php wp_nonce_field( 'ashfxpro_info_save' ); ?>
+        <input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>">
         <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="heading_accent">Heading accent (blue)</label></th>
+                <td><input id="heading_accent" name="heading_accent" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $info['heading_accent'] ?? '10 лет' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="heading_text">Heading text</label></th>
+                <td><input id="heading_text" name="heading_text" type="text" class="large-text"
+                           value="<?php echo esc_attr( $info['heading_text'] ?? 'превращаю рыночный шум в четкий анализ' ); ?>"></td>
+            </tr>
             <tr>
                 <th scope="row"><label for="subtitle">Subtitle</label></th>
                 <td><textarea id="subtitle" name="subtitle" rows="3" class="large-text"><?php echo esc_textarea( $info['subtitle'] ?? '' ); ?></textarea></td>
@@ -413,7 +496,7 @@ function ashfxpro_info_page() {
             </tr>
             <?php endfor; ?>
         </table>
-        <?php submit_button( 'Save changes' ); ?>
+        <?php submit_button( 'Save (' . strtoupper( $lang ) . ')' ); ?>
     </form>
     </div>
     <?php
@@ -449,6 +532,77 @@ function ashfxpro_rest_update_info( WP_REST_Request $req ) {
     return new WP_REST_Response( [ 'ok' => true, 'data' => $info ], 200 );
 }
 
+// ── Fonda section ────────────────────────────────────────────────────────────
+function ashfxpro_fonda_defaults() {
+    return [
+        'word1' => 'ФОНДА',
+        'desc'  => 'Прекрати терять деньги на удачу. Аналитика с проверяемой историей от трейдера с 10-летним опытом.',
+        'word2' => 'КРИПТА',
+        'word3' => 'ВАЛЮТА',
+    ];
+}
+
+add_action( 'admin_menu', function () {
+    add_options_page( 'AshFXPro Fonda', 'AshFXPro Fonda', 'manage_options', 'ashfxpro-fonda', 'ashfxpro_fonda_page' );
+} );
+
+function ashfxpro_fonda_page() {
+    if ( ! current_user_can( 'manage_options' ) ) return;
+
+    $lang       = in_array( $_REQUEST['lang'] ?? 'en', [ 'en', 'ru' ], true ) ? sanitize_key( $_REQUEST['lang'] ?? 'en' ) : 'en';
+    $option_key = 'ashfxpro_fonda_' . $lang;
+
+    if ( isset( $_POST['_wpnonce'] ) &&
+         wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_fonda_save' ) ) {
+        $saved = [
+            'word1' => sanitize_text_field( wp_unslash( $_POST['word1'] ?? '' ) ),
+            'desc'  => sanitize_textarea_field( wp_unslash( $_POST['desc']  ?? '' ) ),
+            'word2' => sanitize_text_field( wp_unslash( $_POST['word2'] ?? '' ) ),
+            'word3' => sanitize_text_field( wp_unslash( $_POST['word3'] ?? '' ) ),
+        ];
+        update_option( $option_key, $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved (' . esc_html( strtoupper( $lang ) ) . ').</p></div>';
+    }
+
+    $fonda    = get_option( $option_key, ashfxpro_fonda_defaults() );
+    $base_url = admin_url( 'options-general.php?page=ashfxpro-fonda' );
+    ?>
+    <div class="wrap">
+    <h1>AshFXPro — Fonda section</h1>
+    <nav class="nav-tab-wrapper">
+      <a href="<?php echo esc_url( $base_url . '&lang=en' ); ?>" class="nav-tab <?php echo $lang === 'en' ? 'nav-tab-active' : ''; ?>">English</a>
+      <a href="<?php echo esc_url( $base_url . '&lang=ru' ); ?>" class="nav-tab <?php echo $lang === 'ru' ? 'nav-tab-active' : ''; ?>">Русский</a>
+    </nav>
+    <form method="post">
+        <?php wp_nonce_field( 'ashfxpro_fonda_save' ); ?>
+        <input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>">
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="word1">Word 1 (white, left)</label></th>
+                <td><input id="word1" name="word1" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $fonda['word1'] ?? 'ФОНДА' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="desc">Description</label></th>
+                <td><textarea id="desc" name="desc" rows="3" class="large-text"><?php echo esc_textarea( $fonda['desc'] ?? '' ); ?></textarea></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="word2">Word 2 (blue, right)</label></th>
+                <td><input id="word2" name="word2" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $fonda['word2'] ?? 'КРИПТА' ); ?>"></td>
+            </tr>
+            <tr>
+                <th scope="row"><label for="word3">Word 3 (white, left)</label></th>
+                <td><input id="word3" name="word3" type="text" class="regular-text"
+                           value="<?php echo esc_attr( $fonda['word3'] ?? 'ВАЛЮТА' ); ?>"></td>
+            </tr>
+        </table>
+        <?php submit_button( 'Save (' . strtoupper( $lang ) . ')' ); ?>
+    </form>
+    </div>
+    <?php
+}
+
 // ── Forecasts (cards-stack) ───────────────────────────────────────────────────
 function ashfxpro_forecasts_defaults() {
     return [
@@ -467,32 +621,52 @@ add_action( 'admin_menu', function () {
 function ashfxpro_forecasts_page() {
     if ( ! current_user_can( 'manage_options' ) ) return;
 
+    $lang         = in_array( $_REQUEST['lang'] ?? 'en', [ 'en', 'ru' ], true ) ? sanitize_key( $_REQUEST['lang'] ?? 'en' ) : 'en';
+    $option_key   = 'ashfxpro_forecasts_' . $lang;
+    $heading_key  = 'ashfxpro_forecasts_heading_' . $lang;
+
     if ( isset( $_POST['_wpnonce'] ) &&
          wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ashfxpro_forecasts_save' ) ) {
+        update_option( $heading_key, sanitize_text_field( wp_unslash( $_POST['fc_heading'] ?? '' ) ) );
         $saved = [];
         for ( $i = 0; $i < 5; $i++ ) {
             $saved[] = [
-                'image_url'    => esc_url_raw( wp_unslash( $_POST[ "fc_{$i}_img" ]     ?? '' ) ),
-                'ticker'       => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_ticker" ]  ?? '' ) ),
-                'title'        => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_title" ]   ?? '' ) ),
-                'date'         => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_date" ]    ?? '' ) ),
-                'channel_name' => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_chname" ]  ?? '' ) ),
+                'image_url'    => esc_url_raw( wp_unslash( $_POST[ "fc_{$i}_img" ]    ?? '' ) ),
+                'ticker'       => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_ticker" ] ?? '' ) ),
+                'title'        => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_title" ]  ?? '' ) ),
+                'date'         => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_date" ]   ?? '' ) ),
+                'channel_name' => sanitize_text_field( wp_unslash( $_POST[ "fc_{$i}_chname" ] ?? '' ) ),
                 'channel_url'  => esc_url_raw( wp_unslash( $_POST[ "fc_{$i}_churl" ]  ?? '' ) ),
             ];
         }
-        update_option( 'ashfxpro_forecasts', $saved );
-        echo '<div class="notice notice-success is-dismissible"><p>Saved.</p></div>';
+        update_option( $option_key, $saved );
+        echo '<div class="notice notice-success is-dismissible"><p>Saved (' . esc_html( strtoupper( $lang ) ) . ').</p></div>';
     }
 
-    $forecasts = get_option( 'ashfxpro_forecasts', ashfxpro_forecasts_defaults() );
+    $heading   = get_option( $heading_key, 'Не верите словам? Посмотрите на факты' );
+    $forecasts = get_option( $option_key, ashfxpro_forecasts_defaults() );
     $blank     = [ 'image_url' => '', 'ticker' => '', 'title' => '', 'date' => '', 'channel_name' => '', 'channel_url' => '' ];
     $forecasts = array_pad( $forecasts, 5, $blank );
+    $base_url  = admin_url( 'options-general.php?page=ashfxpro-forecasts' );
     ?>
     <div class="wrap">
     <h1>AshFXPro — Forecasts (cards)</h1>
     <p>Exactly 5 cards. Image URL, ticker badge, title, date string, and Telegram channel.</p>
+    <nav class="nav-tab-wrapper">
+      <a href="<?php echo esc_url( $base_url . '&lang=en' ); ?>" class="nav-tab <?php echo $lang === 'en' ? 'nav-tab-active' : ''; ?>">English</a>
+      <a href="<?php echo esc_url( $base_url . '&lang=ru' ); ?>" class="nav-tab <?php echo $lang === 'ru' ? 'nav-tab-active' : ''; ?>">Русский</a>
+    </nav>
     <form method="post">
         <?php wp_nonce_field( 'ashfxpro_forecasts_save' ); ?>
+        <input type="hidden" name="lang" value="<?php echo esc_attr( $lang ); ?>">
+        <table class="form-table" role="presentation">
+            <tr>
+                <th scope="row"><label for="fc_heading">Section heading</label></th>
+                <td><input id="fc_heading" name="fc_heading" type="text" class="large-text"
+                           value="<?php echo esc_attr( $heading ); ?>"></td>
+            </tr>
+        </table>
+        <hr>
         <?php for ( $i = 0; $i < 5; $i++ ) : $f = $forecasts[ $i ]; ?>
         <h2>Card <?php echo $i + 1; ?></h2>
         <table class="form-table" role="presentation">
@@ -503,14 +677,14 @@ function ashfxpro_forecasts_page() {
             <tr><th>Title</th><td><input name="fc_<?php echo $i; ?>_title" type="text" class="large-text"
                 value="<?php echo esc_attr( $f['title'] ); ?>"></td></tr>
             <tr><th>Date</th><td><input name="fc_<?php echo $i; ?>_date" type="text" class="regular-text"
-                placeholder="e.g. Май 2024" value="<?php echo esc_attr( $f['date'] ); ?>"></td></tr>
+                placeholder="e.g. May 2024 / Май 2024" value="<?php echo esc_attr( $f['date'] ); ?>"></td></tr>
             <tr><th>Channel name</th><td><input name="fc_<?php echo $i; ?>_chname" type="text" class="regular-text"
                 value="<?php echo esc_attr( $f['channel_name'] ); ?>"></td></tr>
             <tr><th>Channel URL</th><td><input name="fc_<?php echo $i; ?>_churl" type="url" class="large-text"
                 value="<?php echo esc_attr( $f['channel_url'] ); ?>"></td></tr>
         </table>
         <?php endfor; ?>
-        <?php submit_button( 'Save changes' ); ?>
+        <?php submit_button( 'Save (' . strtoupper( $lang ) . ')' ); ?>
     </form>
     </div>
     <?php

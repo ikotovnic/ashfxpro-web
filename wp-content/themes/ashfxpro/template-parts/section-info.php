@@ -1,17 +1,18 @@
 <?php
-$info     = get_option( 'ashfxpro_info', ashfxpro_info_defaults() );
+$lang     = function_exists( 'pll_current_language' ) ? pll_current_language() : 'en';
+$info     = get_option( 'ashfxpro_info_' . $lang, get_option( 'ashfxpro_info', ashfxpro_info_defaults() ) );
 $subtitle = $info['subtitle'] ?? '';
 $stats    = $info['stats']    ?? [];
 ?>
 <section class="section-info" aria-label="<?php esc_attr_e( 'About', 'ashfxpro' ); ?>">
   <div class="info-container">
 
-    <p class="info-heading">
-      <span class="info-heading__accent"><?php esc_html_e( '10 лет', 'ashfxpro' ); ?></span>
-      <?php echo ' ' . esc_html__( 'превращаю рыночный шум в четкий анализ', 'ashfxpro' ); ?>
+    <p class="info-heading reveal">
+      <span class="info-heading__accent"><?php echo esc_html( $info['heading_accent'] ?? '10 лет' ); ?></span>
+      <?php echo ' ' . esc_html( $info['heading_text'] ?? 'превращаю рыночный шум в четкий анализ' ); ?>
     </p>
 
-    <div class="info-right">
+    <div class="info-right reveal reveal-delay-1"">
       <p class="info-subtitle"><?php echo esc_html( $subtitle ); ?></p>
 
       <?php if ( ! empty( $stats ) ) : ?>

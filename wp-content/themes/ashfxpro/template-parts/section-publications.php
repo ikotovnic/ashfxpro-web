@@ -2,15 +2,16 @@
 $img = get_template_directory_uri() . '/assets/images';
 $ico = get_template_directory_uri() . '/assets/icons';
 
+$lang = function_exists( 'pll_current_language' ) ? pll_current_language() : 'en';
 $pubs = array_slice(
-    get_option( 'ashfxpro_publications', ashfxpro_publications_defaults() ),
+    get_option( 'ashfxpro_publications_' . $lang, get_option( 'ashfxpro_publications', ashfxpro_publications_defaults() ) ),
     0, 5
 );
 ?>
 <section class="section-publications" aria-label="<?php esc_attr_e( 'Recent publications', 'ashfxpro' ); ?>">
 
   <div class="publications-intro">
-    <h2 class="publications-intro__title">Recent publications</h2>
+    <h2 class="publications-intro__title"><?php echo esc_html( ashfxpro_t( 'Recent publications' ) ); ?></h2>
     <div class="publications-avatars" aria-hidden="true">
       <?php for ( $i = 1; $i <= 4; $i++ ) : ?>
         <div class="avatar-stack">

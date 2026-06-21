@@ -1,13 +1,15 @@
 <?php
-$forecasts  = get_option( 'ashfxpro_forecasts', ashfxpro_forecasts_defaults() );
+$lang       = function_exists( 'pll_current_language' ) ? pll_current_language() : 'en';
+$forecasts  = get_option( 'ashfxpro_forecasts_' . $lang, get_option( 'ashfxpro_forecasts', ashfxpro_forecasts_defaults() ) );
+$fc_heading = get_option( 'ashfxpro_forecasts_heading_' . $lang, 'Не верите словам? Посмотрите на факты' );
 $tops       = [ '5dvh', '10dvh', '15dvh', '20dvh', '25dvh' ];
 $disclaimer = 'Не является инвестиционной рекомендацией. Торговля сопряжена с риском потери капитала.';
 ?>
 <section class="section-forecasts" aria-label="<?php esc_attr_e( 'Forecasts', 'ashfxpro' ); ?>">
   <div class="forecasts-container">
 
-    <header class="forecasts-header">
-      <h2 class="forecasts-title"><?php esc_html_e( 'Не верите словам? Посмотрите на факты', 'ashfxpro' ); ?></h2>
+    <header class="forecasts-header reveal">
+      <h2 class="forecasts-title"><?php echo esc_html( $fc_heading ); ?></h2>
     </header>
 
     <div class="cards-stack">

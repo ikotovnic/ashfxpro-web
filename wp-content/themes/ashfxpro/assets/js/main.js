@@ -244,6 +244,23 @@
     update();
   }());
 
+  /* ── Scroll reveal: fade + blur for any .reveal element ── */
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!els.length || !window.IntersectionObserver) return;
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+
+    els.forEach(function (el) { observer.observe(el); });
+  }());
+
   /* ── Forecast card scale effect ── */
   (function () {
     var cards = document.querySelectorAll('.section-forecasts .card-item');

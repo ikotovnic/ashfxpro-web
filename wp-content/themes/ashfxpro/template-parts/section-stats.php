@@ -16,9 +16,9 @@ $max_h   = 189;
   <!-- Stat 1: Total Return (green) -->
   <div class="stat-card stat-card--green">
     <div class="stat-header">
-      <span class="stat-label">Last 500 signals</span>
+      <span class="stat-label"><?php echo esc_html( ashfxpro_t( 'Last 500 signals' ) ); ?></span>
       <div class="dropdown-pill">
-        All tickets
+        <?php echo esc_html( ashfxpro_t( 'All tickets' ) ); ?>
         <img class="arrow" src="<?php echo esc_url( "$ico/arrow-down.svg" ); ?>" alt="" aria-hidden="true">
       </div>
     </div>
@@ -26,32 +26,32 @@ $max_h   = 189;
     <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;width:100%;">
       <div class="stat-main">
         <div class="stat-main__row">
-          <span class="stat-num">+112R</span>
+          <span class="stat-num"><?php echo esc_html( $chart['stat_return'] ?? '+112R' ); ?></span>
           <div class="stat-sub-metrics">
-            <span>+45.8%</span>
-            <span>+28K pips</span>
+            <span><?php echo esc_html( $chart['stat_return_pct'] ?? '+45.8%' ); ?></span>
+            <span><?php echo esc_html( $chart['stat_return_pips'] ?? '+28K pips' ); ?></span>
           </div>
         </div>
-        <span class="stat-main__label">Total Return</span>
+        <span class="stat-main__label"><?php echo esc_html( ashfxpro_t( 'Total Return' ) ); ?></span>
       </div>
       <a href="#track-record" class="btn-verify">
         <img src="<?php echo esc_url( "$ico/telegram.svg" ); ?>" alt="" aria-hidden="true">
-        Verify Track Record
+        <?php echo esc_html( ashfxpro_t( 'Verify Track Record' ) ); ?>
       </a>
     </div>
 
     <div class="stat-bottom">
       <div class="stat-metric">
-        <span class="stat-metric__value">+3.6R</span>
-        <span class="stat-metric__label">Total Profit</span>
+        <span class="stat-metric__value"><?php echo esc_html( $chart['stat_profit'] ?? '+3.6R' ); ?></span>
+        <span class="stat-metric__label"><?php echo esc_html( ashfxpro_t( 'Total Profit' ) ); ?></span>
       </div>
       <div class="stat-metric">
-        <span class="stat-metric__value">8.5%</span>
-        <span class="stat-metric__label">Max<br>Drawdown</span>
+        <span class="stat-metric__value"><?php echo esc_html( $chart['stat_drawdown'] ?? '8.5%' ); ?></span>
+        <span class="stat-metric__label"><?php echo nl2br( esc_html( ashfxpro_t( 'Max Drawdown' ) ) ); ?></span>
       </div>
       <div class="stat-metric">
-        <span class="stat-metric__value">1.92</span>
-        <span class="stat-metric__label">Average R/R</span>
+        <span class="stat-metric__value"><?php echo esc_html( $chart['stat_rr'] ?? '1.92' ); ?></span>
+        <span class="stat-metric__label"><?php echo esc_html( ashfxpro_t( 'Average R/R' ) ); ?></span>
       </div>
     </div>
   </div>
@@ -59,7 +59,7 @@ $max_h   = 189;
   <!-- Stat 2: Activity (donut chart) -->
   <div class="stat-card stat-card--chart">
     <div class="stat-header">
-      <span class="stat-label" style="font-weight:600;">Activity</span>
+      <span class="stat-label" style="font-weight:600;"><?php echo esc_html( ashfxpro_t( 'Activity' ) ); ?></span>
       <div class="dropdown-pill">
         <?php echo esc_html( $chart['period_label'] ); ?>
         <img class="arrow" src="<?php echo esc_url( "$ico/arrow-down.svg" ); ?>" alt="" aria-hidden="true">
@@ -74,7 +74,7 @@ $max_h   = 189;
 
     <div class="stat-main">
       <span class="stat-chart-num"><?php echo esc_html( $chart['total_count'] ); ?></span>
-      <span class="stat-main__label">Publications in <?php echo esc_html( $chart['period_label'] ); ?></span>
+      <span class="stat-main__label"><?php echo esc_html( ashfxpro_t( 'Publications in May' ) ); ?></span>
     </div>
 
     <div class="stat-legend">
@@ -90,7 +90,7 @@ $max_h   = 189;
   <!-- Stat 3: Top requests (bar chart) -->
   <div class="stat-card stat-card--bars">
     <div class="bars-title-row">
-      <span>Top requests</span>
+      <span><?php echo esc_html( ashfxpro_t( 'Top requests' ) ); ?></span>
       <span><?php echo esc_html( $chart['period_label'] ); ?></span>
     </div>
 
@@ -115,7 +115,7 @@ $max_h   = 189;
       <?php endforeach; ?>
     </div>
 
-    <p class="stat-analytics-label">Personal analytics</p>
+    <p class="stat-analytics-label"><?php echo esc_html( ashfxpro_t( 'Personal analytics' ) ); ?></p>
   </div>
 
 </section>
